@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta name="naver-site-verification" content="48ecc5509e5af5b20a84d5de23c0afd9900b8f83" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Face Recognition</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+        * , *:before, *:after { box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(180deg, #111111 0%, #000000 100%);
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            color: white;
+            padding: 20px;
+            padding-top: 80px;
+        }
+
+        /* 네비게이션 바 - Home/햄버거 제거 버전 */
+        .nav-bar {
+            position: fixed; top: 0; left: 0; width: 100%;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px);
+            z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .nav-container {
+            max-width: 1000px; margin: 0 auto; display: flex;
+            justify-content: space-between; align-items: center; padding: 15px 20px;
+            gap: 30px; /* 로고와 About 사이 간격 */
+        }
+        .nav-logo { font-weight: 700; font-size: 20px; color: #FF6B6B; }
+        .nav-links { display: flex; }
+        .nav-links a { color: white; text-decoration: none; font-size: 15px; opacity: 0.8; padding: 10px 0; }
+        .nav-links a:hover { opacity: 1; }
+
+        h2 { font-weight: 700; margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        /* 캡처 대상 영역 */
+        #capture-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            background: transparent;
+            padding: 10px;
+            border-radius: 20px;
+        }
+
+        /* 업로드 박스 - [수정됨] 고정 높이 제거, 결과 화면에서 유연하게 조정 */
+        .uploadWrapper { position: relative; width: 500px; max-width: 100%; }
+        .imageUploadForm {
+            background: rgba(255, 255, 255, 0.05);
+            /* [수정됨] 초기 로드 전에는 고정 높이, 로드 후엔 유연하게 */
+            height: 400px; 
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: center; /* [수정됨] 중앙 정렬 */
+            justify-content: center;
+            flex-wrap: wrap;
+            border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: height 0.3s ease; /* 부드러운 전환 */
+        }
+        /* [수정됨] 결과가 예측되었을 때 폼의 고정 높이를 제거하여 원본 사진 비율을 따르게 함 */
+        .imageUploadForm.predicted {
+            height: auto;
+            padding: 10px;
+        }
+
+        .imageUploadForm .helpText {
+            color: rgba(255,255,255,0.7); display: block; position: absolute;
+            top: 2%; left: 0; width: 100%; height: 100%;
+            text-align: center; font-size: 30px; font-weight: 300; z-index: 1;
+        }
+        .imageUploadForm.loaded .helpText { display: none; }
+        .imageUploadForm .helpText:after {
+            content: '\f0ee'; font-family: 'FontAwesome';
+            font-size: 150%; color: rgba(255, 255, 255, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            margin: 4% auto; width: 50%; height: 50%;
+            border: 4px dashed rgba(255, 255, 255, 0.2); border-radius: 15px;
+        }
+
+        #face-image {
+            /* [수정됨] 찌그러짐 방지를 위해 object-fit cover 사용 및 고정 위치 조정 */
+            width: 100%;
+            max-height: 400px; /* 너무 커지지 않도록 최대 높이 설정 */
+            object-fit: cover; /* 비율을 유지하면서 영역을 꽉 채움 (찌그러짐 방지 핵심) */
+            border-radius: 10px; display: none; z-index: 5;
+            transition: all 0.3s ease;
+        }
+        /* [수정됨] 사진이 로드되고 예측이 완료되면 중앙 배치 및 여백 조정 */
+        .imageUploadForm.loaded.predicted #face-image {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .imageUploadForm.loaded #face-image { display: block; }
+        .imageUploadForm .pickFile {
+            position: absolute; bottom: 0; left: 0; display: flex; background: rgba(0,0,0,0.3);
+            height: 25%; width: 100%; align-items: center; justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        .imageUploadForm.predicted .pickFile { transform: translateY(100%); }
+        .pickFileButton {
+            display: inline-block; padding: 12px 25px; font-weight: 500; font-size: 16px;
+            color: white; background: #FF6B6B; border-radius: 20px; text-decoration: none;
+            box-shadow: 0 4px 10px rgba(255,107,107,0.4);
+        }
+        .uploadButton { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; }
+        .imageUploadForm.predicted .uploadButton { display: none; }
+
+        /* 다시 하기 버튼 (사진 바로 아래 배치) */
+        .btn-retry {
+            display: none; background: transparent; border: 1px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.7); padding: 8px 15px; border-radius: 10px; cursor: pointer;
+            font-family: 'Poppins', sans-serif; font-size: 13px; transition: 0.3s;
+            margin-top: 15px; align-self: center;
+        }
+        .btn-retry:hover { background: rgba(255,255,255,0.1); color: white; }
+
+        /* 결과 그래프 */
+        #label-container { width: 500px; max-width: 100%; margin-top: 20px; display: none; }
+        .result-bar-box { margin-bottom: 15px; }
+        .result-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 16px; font-weight: 500; }
+        .bar-container {
+            width: 100%; height: 20px; background: rgba(255,255,255,0.1);
+            border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .bar-fill {
+            height: 100%; border-radius: 10px; transition: width 1s ease-in-out;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+        }
+
+        /* 하단 저장 버튼 */
+        .save-box { width: 500px; max-width: 100%; display: none; margin-top: 15px; }
+        .btn-save {
+            width: 100%; background: #FF6B6B; color: white; border: none;
+            padding: 18px; border-radius: 15px; cursor: pointer;
+            font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700;
+            box-shadow: 0 4px 15px rgba(255,107,107,0.4); transition: 0.3s;
+        }
+        .btn-save:hover { transform: translateY(-2px); background: #ff5252; }
+    </style>
+</head>
+<body>
+
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-logo">Animal Face</div>
+            <div class="nav-links">
+                <a href="#">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <h2>동물상 판독기</h2>
+
+    <div id="capture-area">
+        <div class="uploadWrapper">
+            <form id="imageUploadForm" class="imageUploadForm">
+                <span class="helpText">사진을 업로드하세요</span>
+                <input type='file' id="file" class="uploadButton" accept="image/*" />
+                <img id="face-image" src="" alt="uploaded image" />
+                <span class="pickFile">
+                    <a href="#" class="pickFileButton"><i class="fa fa-image"></i> 이미지 선택</a>
+                </span>
+            </form>
+        </div>
+
+        <button type="button" class="btn-retry" id="btn-retry" onclick="resetUpload()">
+            <i class="fa fa-refresh"></i> 다시 하기
+        </button>
+
+        <div id="label-container"></div>
+    </div>
+
+    <div class="save-box" id="save-box">
+        <button type="button" class="btn-save" onclick="saveResult()">
+            <i class="fa fa-download"></i> 결과 이미지 저장하기
+        </button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/kZ-a4VTne/";
+        let model, labelContainer, maxPredictions;
+
+        async function loadModel() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+            labelContainer = document.getElementById("label-container");
+        }
+
+        async function predict() {
+            const image = document.getElementById("face-image");
+            const prediction = await model.predict(image);
+            
+            // [수정됨] loaded 클래스도 함께 추가하여 결과 화면 CSS가 올바르게 적용되도록 함
+            $("#imageUploadForm").addClass('loaded predicted');
+            $('#btn-retry').show();
+            $('#save-box').css('display', 'block');
+            $('#label-container').fadeIn().html(""); 
+
+            const emojis = ["🐶", "🐱", "🦊", "🐰", "🦖", "🦌", "🐹"];
+            const rainbowColors = ["#FF5F5F", "#FFA35F", "#FFF15F", "#79FF5F", "#5F96FF", "#A35FFF", "#8B00FF"];
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const name = prediction[i].className;
+                const prob = (prediction[i].probability * 100).toFixed(0);
+                const barColor = rainbowColors[i] || "#ffffff"; 
+                const emoji = emojis[i] || " ";
+
+                const barHtml = `
+                    <div class="result-bar-box">
+                        <div class="result-label">
+                            <span>${emoji} ${name}</span>
+                            <span>${prob}%</span>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar-fill" style="width: ${prob}%; background-color: ${barColor};"></div>
+                        </div>
+                    </div>
+                `;
+                labelContainer.innerHTML += barHtml;
+            }
+        }
+
+        async function saveResult() {
+            const captureArea = document.querySelector("#capture-area");
+            $('#btn-retry').hide();
+
+            // [수정됨] html2canvas 옵션을 찌그러짐 방지에 맞게 조정
+            const canvas = await html2canvas(captureArea, {
+                backgroundColor: "#111111",
+                useCORS: true,
+                scale: 2, // 고해상도 저장
+                // [수정됨] 캡처 전 레이아웃을 강제로 업데이트하여 찌그러짐을 방지
+                onclone: (clonedDoc) => {
+                    const form = clonedDoc.querySelector('.imageUploadForm');
+                    const img = clonedDoc.querySelector('#face-image');
+                    
+                    // 캡처 영역 내에서 고정 높이를 확실히 제거
+                    if (form && form.classList.contains('predicted')) {
+                        form.style.height = 'auto';
+                        form.style.padding = '10px';
+                        
+                        // 캡처 영역 내의 이미지 object-fit을 cover로 강제
+                        if (img) {
+                            img.style.width = '100%';
+                            img.style.objectFit = 'cover';
+                            img.style.maxHeight = '400px'; 
+                            img.style.margin = '0 auto';
+                        }
+                    }
+                }
+            });
+            
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL("image/png");
+            link.download = 'animal_face_result.png';
+            link.click();
+
+            $('#btn-retry').show();
+        }
+
+        function resetUpload() {
+            // [수정됨] loaded 클래스도 함께 제거
+            $("#imageUploadForm").removeClass('loaded predicted');
+            // [수정됨] 이미지 로드 후 높이가 auto로 고정되는 것을 방지하기 위해 스타일 초기화
+            $("#imageUploadForm").css('height', '400px');
+            $("#face-image").attr('src', '');
+            $("#file").val('');
+            $("#label-container").hide().html("");
+            $("#btn-retry").hide();
+            $("#save-box").hide();
+        }
+
+        $(document).ready(function() {
+            loadModel();
+            $("#file").on('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        $("#face-image").attr('src', e.target.result);
+                        // [수정됨] loaded 클래스만 먼저 추가 (예측 전)
+                        $("#imageUploadForm").addClass('loaded');
+                        // [수정됨] 파일 선택 시 다시하기 버튼과 저장 버튼을 숨김
+                        $('#btn-retry').hide();
+                        $('#save-box').hide();
+                        $("#face-image").off('load').on('load', function() {
+                            if (model) predict();
+                        });
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

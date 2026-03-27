@@ -1,0 +1,154 @@
+* , *:before, *:after { box-sizing: border-box; }
+
+body {
+    background: linear-gradient(180deg, #333333 0%, #000000 100%);
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    color: white;
+    overflow-x: hidden;
+}
+
+/* 네비게이션 바 디자인 */
+.navbar {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    position: fixed;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+}
+
+.nav-logo { font-weight: 700; font-size: 1.2rem; color: #FF6B6B; }
+
+.nav-menu { display: flex; gap: 20px; }
+
+.nav-menu a {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    transition: 0.3s;
+    opacity: 0.8;
+}
+
+.nav-menu a:hover { opacity: 1; color: #FF6B6B; }
+
+.nav-hamburger { display: none; cursor: pointer; font-size: 20px; }
+
+/* 모바일 네비게이션 (햄버거 메뉴 클릭 시) */
+@media (max-width: 768px) {
+    .nav-hamburger { display: block; }
+    .nav-menu {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: rgba(0,0,0,0.9);
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .nav-menu.active { display: flex; animation: slideDown 0.3s ease-out; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* 메인 컨텐츠 영역 */
+.main-content {
+    padding-top: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+h2 { font-weight: 700; margin-bottom: 30px; }
+
+.uploadWrapper { position: relative; width: 500px; max-width: 90%; }
+
+.imageUploadForm {
+    background: rgba(255, 255, 255, 0.05);
+    height: 400px; width: 100%;
+    position: relative; border-radius: 20px;
+    border: 2px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+    display: flex; align-items: flex-end; justify-content: center;
+}
+
+.imageUploadForm .helpText {
+    position: absolute; top: 40%; width: 100%; text-align: center;
+    font-size: 20px; opacity: 0.6;
+}
+
+#face-image {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%; height: 80%; object-fit: contain;
+    border-radius: 10px; display: none; z-index: 5;
+}
+
+.imageUploadForm.loaded #face-image { display: block; }
+.imageUploadForm.loaded .helpText { display: none; }
+
+.pickFile {
+    position: absolute; bottom: 0; width: 100%;
+    background: rgba(0,0,0,0.3); height: 80px;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.3s;
+}
+
+.imageUploadForm.predicted .pickFile { transform: translateY(100%); }
+
+.pickFileButton {
+    background: #FF6B6B; color: white; padding: 10px 30px;
+    border-radius: 25px; text-decoration: none; font-weight: 500;
+}
+
+.uploadButton {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: pointer; z-index: 10;
+}
+
+/* 결과 바 스타일 */
+#label-container { width: 500px; max-width: 90%; margin-top: 30px; margin-bottom: 50px; }
+
+.result-item { margin-bottom: 15px; }
+
+.label-text { font-size: 14px; margin-bottom: 5px; font-weight: 500; }
+
+.bar-background {
+    background: rgba(255, 255, 255, 0.1);
+    height: 25px; border-radius: 12px;
+    overflow: hidden; position: relative;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.bar-fill {
+    height: 100%; border-radius: 12px;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 10px; transition: width 1s ease-out;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.4); /* 바의 그림자 효과 */
+}
+
+.percent-text { font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.6); }
+
+/* 또 하기 버튼 */
+.retry-box { width: 500px; max-width: 90%; display: none; margin-top: 15px; }
+.btn-retry {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: white; padding: 6px 15px; border-radius: 15px; cursor: pointer;
+}
