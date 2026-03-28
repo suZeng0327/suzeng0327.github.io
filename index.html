@@ -160,11 +160,13 @@
     </nav>
 
     <h2>동물상 판독기</h2>
+<div style="margin: 20px auto; min-height: 100px; display: flex; justify-content: center;">
     <ins class="kakao_ad_area" style="display:none;"
     data-ad-unit = "DAN-T5c1Yqfo2SpMfTSW"
     data-ad-width = "320"
     data-ad-height = "100"></ins>
     <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+</div>
 
     <div id="capture-area">
         <div class="uploadWrapper">
@@ -240,37 +242,26 @@
         }
 
         async function saveResult() {
+            // [광고 신호 1] 저장 버튼 누를 때 앱에 알림
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage("START_AD_BEFORE_SAVE");
+            }
+
             const captureArea = document.querySelector("#capture-area");
             $('#btn-retry').hide();
 
             const canvas = await html2canvas(captureArea, {
                 backgroundColor: "#111111",
                 useCORS: true,
-                scale: 2,
-                onclone: (clonedDoc) => {
-                    const form = clonedDoc.querySelector('.imageUploadForm');
-                    const img = clonedDoc.querySelector('#face-image');
-                    if (form && form.classList.contains('predicted')) {
-                        form.style.height = 'auto';
-                        form.style.padding = '10px';
-                        if (img) {
-                            img.style.width = '100%';
-                            img.style.objectFit = 'cover';
-                            img.style.maxHeight = '400px'; 
-                            img.style.margin = '0 auto';
-                        }
-                    }
-                }
+                scale: 2
             });
             
             const dataUrl = canvas.toDataURL("image/png");
 
-            // [핵심 수정] 앱(WebView)인지 브라우저인지 판단하여 처리
             if (window.ReactNativeWebView) {
-                // 앱에서 실행 중일 때: 앱의 App.js로 이미지 데이터 전송
+                // 앱의 App.js로 이미지 데이터 전송
                 window.ReactNativeWebView.postMessage(dataUrl);
             } else {
-                // 일반 브라우저에서 실행 중일 때: 기존 방식대로 다운로드
                 const link = document.createElement('a');
                 link.href = dataUrl;
                 link.download = 'animal_face_result.png';
@@ -294,6 +285,11 @@
             loadModel();
             $("#file").on('change', function() {
                 if (this.files && this.files[0]) {
+                    // [광고 신호 2] 이미지 업로드 시 앱에 알림
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage("START_AD_ON_UPLOAD");
+                    }
+
                     const reader = new FileReader();
                     reader.onload = function (e) {
                         $("#face-image").attr('src', e.target.result);
